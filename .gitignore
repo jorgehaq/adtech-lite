@@ -1,0 +1,71 @@
+# =====================================
+# Python
+# =====================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+.eggs/
+.Python
+.env
+.venv
+venv/
+ENV/
+env/
+dist/
+build/
+develop-eggs/
+.installed.cfg
+*.manifest
+*.spec
+
+# =====================================
+# Logs
+# =====================================
+*.log
+*.pid
+*.seed
+*.coverage
+.coverage.*
+.cache
+pytest_cache/
+htmlcov/
+coverage.xml
+
+# =====================================
+# IDE / Editors
+# =====================================
+.vscode/
+.idea/
+*.iml
+
+# =====================================
+# OS files
+# =====================================
+.DS_Store
+Thumbs.db
+
+# =====================================
+# Docker
+# =====================================
+*.bak
+*.swp
+docker-data/
+mysql_data/
+redis_data/
+
+# =====================================
+# Alembic
+# =====================================
+alembic/versions/*.pyc
+alembic/versions/__pycache__/
+alembic.ini.bak
+
+# =====================================
+# Local envs
+# =====================================
+.env.local
+.env.prod
