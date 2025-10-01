@@ -73,8 +73,19 @@ make test                    # Run all tests with coverage
 - **AAA pattern** (Arrange-Act-Assert) for clarity
 - **63% code coverage** across core modules
 
+```
+
+## 📊 Quick Validation
+
 ```bash
-make test  # Run all tests with coverage report
+# Check health
+curl http://localhost:8070/health
+
+# List all campaigns
+curl http://localhost:8070/campaigns/ -H "X-Tenant-ID: 1"
+
+# Get campaign metrics summary
+curl http://localhost:8070/metrics/summary/1
 ```
 
 ### Test Structure
@@ -126,6 +137,39 @@ All API requests (except `/health`, `/docs`) require `X-Tenant-ID` header for te
 > COPY main.py .
 > ```
 > This keeps the production image minimal and secure.
+
+
+
+# 🎬 Demo Flow (3 minutes)
+
+```bash
+# 1. Create campaign
+curl -X POST http://localhost:8070/campaigns/ \
+  -H "X-Tenant-ID: 1" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Spring Campaign"}'
+
+# Response: {"id": 1, "name": "Spring Campaign", "tenant_id": 1}
+
+# 2. Register events
+for i in {1..5}; do
+  curl -X POST http://localhost:8070/metrics/impressions/1 -H "X-Tenant-ID: 1"
+done
+
+for i in {1..2}; do
+  curl -X POST http://localhost:8070/metrics/clicks/1 -H "X-Tenant-ID: 1"
+done
+
+# 3. Get metrics
+curl http://localhost:8070/metrics/campaigns/1/metrics -H "X-Tenant-ID: 1"
+
+# Response: {"impressions": 5, "clicks": 2, "ctr": 0.4}
+
+# 4. WebSocket (browser or wscat)
+wscat -c ws://localhost:8070/metrics/realtime/metrics/1
+# Or open: http://localhost:8070/docs → Try WebSocket endpoint
+```
+
 
 ## License
 MIT
