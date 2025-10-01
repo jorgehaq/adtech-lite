@@ -3,8 +3,11 @@ from sqlalchemy.orm import Session
 from config.db import get_db
 from config.redis import redis_client
 from apps.metrics.endpoints import router as metrics_router
+from config.middleware.tenant import tenant_middleware
 
 app = FastAPI(title="Adtech Lite", version="0.2.0")
+
+app.middleware("http")(tenant_middleware)
 
 app.include_router(metrics_router)
 

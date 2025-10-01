@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, WebSocket
+from fastapi import APIRouter, Depends, WebSocket, Request
 from sqlalchemy.orm import Session
 from redis.asyncio import Redis
 from config.db import get_db
@@ -12,8 +12,17 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 
 @router.post("/impressions/{campaign_id}")
-async def track_impression(campaign_id: int, db: Session = Depends(get_db)):
-    event = Event(campaign_id=campaign_id, tenant_id=1, type="impression")
+async def track_impression(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    request: Request = None
+):
+    tenant_id = request.state.tenant_id
+    event = Event(
+        campaign_id=campaign_id,
+        tenant_id=tenant_id,
+        type="impression"
+    )
     db.add(event)
     db.commit()
     db.refresh(event)
