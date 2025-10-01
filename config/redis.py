@@ -1,12 +1,22 @@
+# config/redis.py
 import os
-import aioredis
-from functools import lru_cache
+from redis.asyncio import Redis, ConnectionPool
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+# Pool de conexiones
+pool = ConnectionPool.from_url(
+    os.getenv("REDIS_URL", "redis://redis:6379/0"),
+    decode_responses=True,
+    max_connections=10,
+)
 
-@lru_cache
-def get_redis_url() -> str:
-    return REDIS_URL
+# Cliente Redis compartido
+redis_client = Redis(connection_pool=pool)
 
-async def get_redis():
-    return await aioredis.from_url(get_redis_url(), decode_responses=True)
+# Dependencia para FastAPI
+async def get_redis() -> Redis:
+    try:
+        await redis_client.ping()
+        return redis_client
+    except Exception as e:
+        raise RuntimeError(f"Redis connection failed: {e}")
+
