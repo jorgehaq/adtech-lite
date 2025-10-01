@@ -70,3 +70,23 @@ async def websocket_metrics(ws: WebSocket, campaign_id: int, redis: Redis = Depe
         await pubsub.unsubscribe(f"campaign:{campaign_id}:metrics")
         await pubsub.close()
 
+
+@router.get("/campaigns/{campaign_id}/metrics")
+async def get_campaign_metrics(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    request: Request = None
+):
+    tenant_id = request.state.tenant_id
+    impressions = db.query(Event).filter_by(
+        campaign_id=campaign_id,
+        tenant_id=tenant_id,
+        type="impression"
+    ).count()
+    clicks = db.query(Event).filter_by(
+        campaign_id=campaign_id,
+        tenant_id=tenant_id,
+        type="click"
+    ).count()
+    ctr = clicks / impressions if impressions > 0 else 0
+    return {"impressions": impressions, "clicks": clicks, "ctr": ctr}
