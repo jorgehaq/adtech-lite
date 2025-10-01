@@ -1,6 +1,8 @@
 PROJECT_NAME=adtech-lite
 REGION=us-central1
+GCP_PROJECT_ID?=your-gcp-project-id
 IMAGE=gcr.io/$(GCP_PROJECT_ID)/$(PROJECT_NAME):latest
+IMAGE_LOCAL=$(PROJECT_NAME):latest
 
 # Docker status
 docker-status-origin:
@@ -12,8 +14,12 @@ docker-status:
 docker-prune:
 	docker system prune -f
 
-docker-build:
-	docker build -t $(IMAGE) .
+dockre-rm-old-images:
+	docker image prune -af
+
+docker-rm-huerfanos-volumes:
+	docker volume prune -f 
+
 
 docker-push:
 	docker push $(IMAGE)
@@ -27,13 +33,14 @@ docker-volume-rm:
 
 # Run DOCKER
 docker-dev:
-	docker compose -f docker/docker-compose.local.yml up && \
+	docker compose -f docker/docker-compose.local.yml up
 
 docker-dev-build:
 	docker compose -f docker/docker-compose.local.yml up --build
 
 docker-dev-not-cache:
-	docker compose -f docker/docker-compose.local.yml up --build --no-cache
+	docker compose -f docker/docker-compose.local.yml build --no-cache && \
+	docker compose -f docker/docker-compose.local.yml up
 
 dev-check-environment-local:
 	docker exec -it adtech-lite-api env | grep -E "DATABASE_URL|REDIS_URL|ENVIRONMENT"
@@ -70,9 +77,28 @@ mysql-logs:
 poetry-install:
 	poetry install
 
-
+# Exporta requirements.txt desde Poetry
 poetry-generate-requirements:
-	poetry export -f requirements.txt --output requirements.txt
+	poetry export -f requirements.txt --output requirements.txt --without-hashes
+
+# Build de Docker asegurando requirements.txt actualizado
+docker-build: poetry-generate-requirements
+	docker build -t $(IMAGE_LOCAL) -f docker/Dockerfile .
+
+
+
+
+# ALEMBIC LOCAL
+alembic-init:
+	poetry run alembic init alembic
+
+alembic-migrate:
+	set -a && . ./.env.host && set +a && \
+	poetry run alembic revision --autogenerate -m "init tables" && \
+	poetry run alembic upgrade head
+
+alembic-rm-previous-versions:
+	rm -rf alembic/versions/*
 	
 
 
@@ -94,14 +120,12 @@ docker-test-models-shell:
 
 
 
-# ALEMBIC LOCAL
-alembic-init:
-	poetry run alembic init alembic
+# INSTALL POETRY DEPENENCIES
+poetry-mysql-8-criptography:
+	poetry add cryptography && make poetry-generate-requirements
 
-alembic-migrate:
-	set -a && . ./.env.host && set +a && \
-	poetry run alembic revision --autogenerate -m "init tables" && \
-	poetry run alembic upgrade head
+
+
 
 
 
