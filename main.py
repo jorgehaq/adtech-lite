@@ -14,6 +14,20 @@ app.middleware("http")(tenant_middleware)
 app.include_router(metrics_router)
 app.include_router(campaigns_router)
 
+# Root endpoint
+@app.get("/")
+async def root():
+    return {
+        "name": "Adtech Lite API",
+        "version": "0.2.0",
+        "endpoints": {
+            "health": "/health",
+            "docs": "/docs",
+            "campaigns": "/campaigns/",
+            "metrics": "/metrics/"
+        }
+    }
+
 # Healthcheck básico
 @app.get("/health")
 async def healthcheck(db: Session = Depends(get_db)):

@@ -46,6 +46,9 @@ docker-down-rm-volume:
 docker-info:
 	docker ps -s
 
+docker-restart:
+	docker restart adtech-lite-api
+
 # -------------------------------------------------------------------
 # 🗄️ MySQL
 # -------------------------------------------------------------------
@@ -98,8 +101,17 @@ reset-db:
 # -------------------------------------------------------------------
 # ✅ Tests
 # -------------------------------------------------------------------
+# Run unit tests only (with mocks, fast)
 test:
-	set -a && . ./.env.host && pytest -v --asyncio-mode=auto --cov=apps --cov=config --cov-report=term-missing
+	set -a && . ./.env.host && pytest -v --asyncio-mode=auto -m "not integration" --cov=apps --cov=config --cov-report=term-missing
+
+# Run integration tests (requires Docker running)
+test-integration:
+	set -a && . ./.env.host && TEST_BASE_URL=http://localhost:8070 pytest -v --asyncio-mode=auto -m "integration"
+
+# Run all tests (unit + integration)
+test-all:
+	set -a && . ./.env.host && TEST_BASE_URL=http://localhost:8070 pytest -v --asyncio-mode=auto --cov=apps --cov=config --cov-report=term-missing
 
 docker-test-models:
 	docker exec $(API_CONTAINER) python -c "from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print(Campaign, Event)"

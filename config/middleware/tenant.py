@@ -1,7 +1,7 @@
 from fastapi import Request, HTTPException
 
 # Rutas que no requieren tenant_id (health checks, docs, etc)
-EXCLUDED_PATHS = {"/health", "/docs", "/redoc", "/openapi.json"}
+EXCLUDED_PATHS = {"/", "/health", "/docs", "/redoc", "/openapi.json"}
 
 async def tenant_middleware(request: Request, call_next):
     # Bypass middleware para rutas excluidas
