@@ -4,7 +4,14 @@ GCP_PROJECT_ID?=your-gcp-project-id
 IMAGE=gcr.io/$(GCP_PROJECT_ID)/$(PROJECT_NAME):latest
 IMAGE_LOCAL=$(PROJECT_NAME):latest
 
-# Docker status
+# Containers
+API_CONTAINER=adtech-lite-api
+MYSQL_CONTAINER=adtech-lite-mysql
+REDIS_CONTAINER=adtech-lite-redis
+
+# -------------------------------------------------------------------
+# 🐳 Docker
+# -------------------------------------------------------------------
 docker-status-origin:
 	curl -4 -I --max-time 10 https://registry-1.docker.io/v2/
 
@@ -14,143 +21,97 @@ docker-status:
 docker-prune:
 	docker system prune -f
 
-dockre-rm-old-images:
+docker-rm-old-images:
 	docker image prune -af
 
-docker-rm-huerfanos-volumes:
-	docker volume prune -f 
+docker-rm-orphan-volumes:
+	docker volume prune -f
 
-
-docker-push:
-	docker push $(IMAGE)
-
-docker-volume-rm:
-	docker volume rm adtech-lite_mysql_data
-
-
-
-
-
-# Run DOCKER
 docker-dev:
 	docker compose -f docker/docker-compose.local.yml up
 
 docker-dev-build:
 	docker compose -f docker/docker-compose.local.yml up --build
 
-docker-dev-not-cache:
+docker-dev-no-cache:
 	docker compose -f docker/docker-compose.local.yml build --no-cache && \
 	docker compose -f docker/docker-compose.local.yml up
-
-dev-check-environment-local:
-	docker exec -it adtech-lite-api env | grep -E "DATABASE_URL|REDIS_URL|ENVIRONMENT"
-
-docker-down-rm-volume:
-	docker compose -f docker/docker-compose.local.yml down -v
 
 docker-down:
 	docker compose -f docker/docker-compose.local.yml down
 
+docker-down-rm-volume:
+	docker compose -f docker/docker-compose.local.yml down -v
+
 docker-info:
 	docker ps -s
 
+# -------------------------------------------------------------------
+# 🗄️ MySQL
+# -------------------------------------------------------------------
+dev-mysql-root:
+	docker exec -it $(MYSQL_CONTAINER) mysql -u root -p
 
-
-
-
-
-# MySQL
-dev-mysql-check-root:
-	docker exec -it adtech-lite-mysql mysql -u root -p
-
-dev-mysql-check-devuser:
-	set -a && . ./.env.local && docker exec -it adtech-lite-mysql mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD adtech_lite_db
+dev-mysql-user:
+	set -a && . ./.env.local && docker exec -it $(MYSQL_CONTAINER) \
+	mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD adtech_lite_db
 
 mysql-status:
-	docker exec adtech-lite-mysql mysqladmin -u root -p status
+	docker exec $(MYSQL_CONTAINER) mysqladmin -u root -p status
 
 mysql-logs:
-	docker logs adtech-lite-mysql
+	docker logs $(MYSQL_CONTAINER)
 
-
-
-
-
-# INSTALL
+# -------------------------------------------------------------------
+# 📦 Poetry & Requirements
+# -------------------------------------------------------------------
 poetry-install:
 	poetry install
 
-# Exporta requirements.txt desde Poetry
 poetry-generate-requirements:
 	poetry export -f requirements.txt --output requirements.txt --without-hashes
 
-# Build de Docker asegurando requirements.txt actualizado
 docker-build: poetry-generate-requirements
 	docker build -t $(IMAGE_LOCAL) -f docker/Dockerfile .
 
-
-
-
-# ALEMBIC LOCAL
+# -------------------------------------------------------------------
+# 🔄 Alembic
+# -------------------------------------------------------------------
 alembic-init:
 	poetry run alembic init alembic
 
-# Crear nueva migración
 alembic-revision:
 	set -a && . ./.env.host && poetry run alembic revision --autogenerate -m "$(MSG)"
 
-# Aplicar migraciones pendientes
 alembic-upgrade:
 	set -a && . ./.env.host && poetry run alembic upgrade head
 
-# Crear y aplicar migración (combo)
-alembic-migrate:
-	@echo "Use 'make alembic-revision MSG=\"your message\"' para crear migración"
-	@echo "Use 'make alembic-upgrade' para aplicar migraciones"
-
-alembic-rm-previous-versions:
+alembic-clean:
 	rm -rf alembic/versions/*
-	
 
-
-# PYTEST
-test:
-	set -a && . ./.env.host && pytest -v --asyncio-mode=auto --cov=apps --cov=config --cov-report=term-missing
-
-
-# reset db alempic, docker 
 reset-db:
 	make docker-down-rm-volume
 	make docker-dev-build
-	make alembic-rm-previous-versions
-	make alembic-migrate
+	make alembic-clean
+	make alembic-upgrade
 
+# -------------------------------------------------------------------
+# ✅ Tests
+# -------------------------------------------------------------------
+test:
+	set -a && . ./.env.host && pytest -v --asyncio-mode=auto --cov=apps --cov=config --cov-report=term-missing
 
-
-
-# TEST DOCKER MODELOS
 docker-test-models:
-	docker exec adtech-lite-api python -c "from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print(Campaign, Event)"
-
+	docker exec $(API_CONTAINER) python -c "from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print(Campaign, Event)"
 
 docker-test-db:
-	docker exec adtech-lite-api python -c "import os; from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print('DB=', os.getenv('DATABASE_URL')); print(Campaign, Event)"
-	set -a && . ./.env.local && docker exec adtech-lite-mysql mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD adtech_lite_db -e "SHOW TABLES;"
+	docker exec $(API_CONTAINER) python -c "import os; from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print('DB=', os.getenv('DATABASE_URL')); print(Campaign, Event)"
+	set -a && . ./.env.local && docker exec -it $(MYSQL_CONTAINER) mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD adtech_lite_db -e "SHOW TABLES;"
 
-
-
-
-# INSTALL POETRY DEPENENCIES
-poetry-mysql-8-criptography:
-	poetry add cryptography && make poetry-generate-requirements
-
-
-
-
-
-
-# GCP
-gcp-deploy: build push
+# -------------------------------------------------------------------
+# 🚀 GCP Deploy
+# -------------------------------------------------------------------
+gcp-deploy: docker-build docker-push
 	gcloud run deploy $(PROJECT_NAME)-api \
 		--image $(IMAGE) \
 		--platform managed \
