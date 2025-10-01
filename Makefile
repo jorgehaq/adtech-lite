@@ -104,7 +104,7 @@ alembic-rm-previous-versions:
 
 # PYTEST
 test:
-	pytest -v --asyncio-mode=auto --cov=apps --cov=config --cov-report=term-missing
+	set -a && . ./.env.host && pytest -v --asyncio-mode=auto --cov=apps --cov=config --cov-report=term-missing
 
 
 # TEST DOCKER MODELOS

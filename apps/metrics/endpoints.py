@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, WebSocket
 from sqlalchemy.orm import Session
+from redis.asyncio import Redis
 from config.db import get_db
 from config.redis import get_redis
 from apps.metrics.models import Event
-from apps.campaigns.models import Campaign
-from apps.metrics.service import publish_event
 from sqlalchemy import func
 import asyncio
 import json
@@ -49,11 +48,13 @@ async def websocket_metrics(ws: WebSocket, campaign_id: int, redis: Redis = Depe
 
     try:
         while True:
-            message = await pubsub.get_message(timeout=1.0)
-            if message and message["type"] == "message":
-                data = json.loads(message["data"])
+            msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+            if msg and msg["type"] == "message":
+                data = json.loads(msg["data"])
                 await ws.send_json(data)
-            await asyncio.sleep(0.1)
+            # Heartbeat cada 30s
+            await ws.send_json({"type": "heartbeat"})
+            await asyncio.sleep(30)
     except Exception:
         await ws.close()
     finally:
