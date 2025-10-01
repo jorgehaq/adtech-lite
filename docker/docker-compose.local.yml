@@ -5,7 +5,7 @@ services:
       dockerfile: docker/Dockerfile
       network: host
     command: uvicorn main:app --host 0.0.0.0 --port 8070 --reload
-    container_name: edtech-lite-api
+    container_name: adtech-lite-api
     ports:
       - "8070:8070"
     env_file:
@@ -21,7 +21,7 @@ services:
 
   mysql:
     image: mysql:8
-    container_name: edtech-lite-mysql
+    container_name: adtech-lite-mysql
     env_file:
       - ../.env.local
     environment:
@@ -36,7 +36,7 @@ services:
 
   redis:
     image: redis:6
-    container_name: edtech-lite-redis
+    container_name: adtech-lite-redis
     ports:
       - "6379:6379"
 

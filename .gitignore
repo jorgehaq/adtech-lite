@@ -65,7 +65,8 @@ alembic/versions/__pycache__/
 alembic.ini.bak
 
 # =====================================
-# Local envs
+# Environments
 # =====================================
 .env.local
-.env.prod
+.env.host
+.env.*.secret

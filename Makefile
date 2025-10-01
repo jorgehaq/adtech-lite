@@ -21,25 +21,28 @@ docker-push:
 docker-volume-rm:
 	docker volume rm adtech-lite_mysql_data
 
-docker-down-clear-volume:
-	docker compose -f docker/docker-compose.local.yml down -v
-
 
 
 
 
 # Run DOCKER
 docker-dev:
+	docker compose -f docker/docker-compose.local.yml up && \
+
+docker-dev-build:
 	docker compose -f docker/docker-compose.local.yml up --build
 
 docker-dev-not-cache:
 	docker compose -f docker/docker-compose.local.yml up --build --no-cache
 
 dev-check-environment-local:
-	docker exec -it edtech-lite-api env | grep -E "DATABASE_URL|REDIS_URL|ENVIRONMENT"
+	docker exec -it adtech-lite-api env | grep -E "DATABASE_URL|REDIS_URL|ENVIRONMENT"
+
+docker-down-rm-volume:
+	docker compose -f docker/docker-compose.local.yml down -v
 
 docker-down:
-	docker compose -f docker/docker-compose.local.yml down -v
+	docker compose -f docker/docker-compose.local.yml down
 
 
 
@@ -48,22 +51,26 @@ docker-down:
 
 # MySQL
 dev-mysql-check-root:
-	docker exec -it edtech-lite-mysql mysql -u root -proot
+	docker exec -it adtech-lite-mysql mysql -u root -p
 
 dev-mysql-check-devuser:
-	docker exec -it edtech-lite-mysql mysql -u devuser -pdevpass adtech_lite_db
+	set -a && . ./.env.local && docker exec -it adtech-lite-mysql mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD adtech_lite_db
 
 mysql-status:
-	docker exec edtech-lite-mysql mysqladmin -u root -proot status
+	docker exec adtech-lite-mysql mysqladmin -u root -p status
 
 mysql-logs:
-	docker logs edtech-lite-mysql
+	docker logs adtech-lite-mysql
 
 
 
 
 
 # INSTALL
+poetry-install:
+	poetry install
+
+
 poetry-generate-requirements:
 	poetry export -f requirements.txt --output requirements.txt
 	
@@ -74,11 +81,27 @@ test:
 	pytest -v --asyncio-mode=auto --cov=adtech --cov-report=term-missing
 
 
+# TEST DOCKER MODELOS
+docker-test-models-poetry:
+	docker exec -it adtech-lite-api poetry run python -c "from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print(Campaign, Event)"
 
-# ALEMBIC
-migrate:
-	alembic revision --autogenerate -m "new migration"
-	alembic upgrade head
+
+docker-test-models-shell:
+	docker exec -it adtech-lite-api \
+	python -c "import os; from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print('DB=', os.getenv('DATABASE_URL')); print(Campaign, Event)" && \
+	set -a && . ./.env.local && docker exec -it adtech-lite-mysql mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD adtech_lite_db -e "SHOW TABLES;"
+
+
+
+
+# ALEMBIC LOCAL
+alembic-init:
+	poetry run alembic init alembic
+
+alembic-migrate:
+	set -a && . ./.env.host && set +a && \
+	poetry run alembic revision --autogenerate -m "init tables" && \
+	poetry run alembic upgrade head
 
 
 
