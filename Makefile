@@ -92,10 +92,18 @@ docker-build: poetry-generate-requirements
 alembic-init:
 	poetry run alembic init alembic
 
+# Crear nueva migración
+alembic-revision:
+	set -a && . ./.env.host && poetry run alembic revision --autogenerate -m "$(MSG)"
+
+# Aplicar migraciones pendientes
+alembic-upgrade:
+	set -a && . ./.env.host && poetry run alembic upgrade head
+
+# Crear y aplicar migración (combo)
 alembic-migrate:
-	set -a && . ./.env.host && set +a && \
-	poetry run alembic revision --autogenerate -m "init tables" && \
-	poetry run alembic upgrade head
+	@echo "Use 'make alembic-revision MSG=\"your message\"' para crear migración"
+	@echo "Use 'make alembic-upgrade' para aplicar migraciones"
 
 alembic-rm-previous-versions:
 	rm -rf alembic/versions/*
@@ -105,6 +113,16 @@ alembic-rm-previous-versions:
 # PYTEST
 test:
 	set -a && . ./.env.host && pytest -v --asyncio-mode=auto --cov=apps --cov=config --cov-report=term-missing
+
+
+# reset db alempic, docker 
+reset-db:
+	make docker-down-rm-volume
+	make docker-dev-build
+	make alembic-rm-previous-versions
+	make alembic-migrate
+
+
 
 
 # TEST DOCKER MODELOS

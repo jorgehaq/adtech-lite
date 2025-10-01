@@ -1,0 +1,4 @@
+CREATE DATABASE IF NOT EXISTS adtech_lite_db;
+CREATE USER IF NOT EXISTS 'devuser'@'%' IDENTIFIED BY 'devpass';
+GRANT ALL PRIVILEGES ON adtech_lite_db.* TO 'devuser'@'%';
+FLUSH PRIVILEGES;
