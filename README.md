@@ -108,5 +108,24 @@ All API requests (except `/health`, `/docs`) require `X-Tenant-ID` header for te
 - Redis Pub/Sub broadcasts events to WebSocket clients
 - Clients receive real-time updates via WebSocket connection
 
+### Docker Development Setup
+
+> **📌 Note on volumes**
+>
+> In **local development** we use Docker Compose volumes for hot reload:
+> ```yaml
+> volumes:
+>   - ..:/code
+> ```
+> This allows live code editing while containers are running.
+>
+> In **production**, the Dockerfile builds the image with only required files:
+> ```dockerfile
+> COPY apps/ ./apps
+> COPY config/ ./config
+> COPY main.py .
+> ```
+> This keeps the production image minimal and secure.
+
 ## License
 MIT

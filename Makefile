@@ -51,6 +51,9 @@ docker-down-rm-volume:
 docker-down:
 	docker compose -f docker/docker-compose.local.yml down
 
+docker-info:
+	docker ps -s
+
 
 
 
