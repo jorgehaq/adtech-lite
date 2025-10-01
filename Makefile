@@ -10,7 +10,7 @@ MYSQL_CONTAINER=adtech-lite-mysql
 REDIS_CONTAINER=adtech-lite-redis
 
 # -------------------------------------------------------------------
-# 🐳 Docker
+# Docker
 # -------------------------------------------------------------------
 docker-status-origin:
 	curl -4 -I --max-time 10 https://registry-1.docker.io/v2/
@@ -50,7 +50,7 @@ docker-restart:
 	docker restart adtech-lite-api
 
 # -------------------------------------------------------------------
-# 🗄️ MySQL
+# MySQL
 # -------------------------------------------------------------------
 dev-mysql-root:
 	docker exec -it $(MYSQL_CONTAINER) mysql -u root -p
@@ -66,7 +66,7 @@ mysql-logs:
 	docker logs $(MYSQL_CONTAINER)
 
 # -------------------------------------------------------------------
-# 📦 Poetry & Requirements
+# Poetry & Requirements
 # -------------------------------------------------------------------
 poetry-install:
 	poetry install
@@ -78,7 +78,7 @@ docker-build: poetry-generate-requirements
 	docker build -t $(IMAGE_LOCAL) -f docker/Dockerfile .
 
 # -------------------------------------------------------------------
-# 🔄 Alembic
+#  Alembic
 # -------------------------------------------------------------------
 alembic-init:
 	poetry run alembic init alembic
@@ -99,7 +99,7 @@ reset-db:
 	make alembic-upgrade
 
 # -------------------------------------------------------------------
-# ✅ Tests
+# Tests
 # -------------------------------------------------------------------
 # Run unit tests only (with mocks, fast)
 test:
@@ -120,8 +120,14 @@ docker-test-db:
 	docker exec $(API_CONTAINER) python -c "import os; from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print('DB=', os.getenv('DATABASE_URL')); print(Campaign, Event)"
 	set -a && . ./.env.local && docker exec -it $(MYSQL_CONTAINER) mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD adtech_lite_db -e "SHOW TABLES;"
 
+docker-test-logs:
+	docker compose -f docker/docker-compose.local.yml logs -f api
+
+test-metrics:
+	curl http://localhost:8070/metrics | head -n 20
+
 # -------------------------------------------------------------------
-# 🚀 GCP Deploy
+#  GCP Deploy
 # -------------------------------------------------------------------
 gcp-deploy: docker-build docker-push
 	gcloud run deploy $(PROJECT_NAME)-api \

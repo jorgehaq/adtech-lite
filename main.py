@@ -3,16 +3,25 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from config.db import get_db
 from config.redis import redis_client
+from config.logging import init_logging
+from config.middleware.tenant import tenant_middleware
+from config.middleware.request_id import request_id_middleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from apps.metrics.endpoints import router as metrics_router
 from apps.campaigns.endpoints import router as campaigns_router
-from config.middleware.tenant import tenant_middleware
+
+init_logging()
+
 
 app = FastAPI(title="Adtech Lite", version="0.2.0")
 
 app.middleware("http")(tenant_middleware)
+app.middleware("http")(request_id_middleware)
 
 app.include_router(metrics_router)
 app.include_router(campaigns_router)
+
+Instrumentator().instrument(app).expose(app)
 
 # Root endpoint
 @app.get("/")
