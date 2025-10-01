@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, WebSocket, Request
 from sqlalchemy.orm import Session
 from redis.asyncio import Redis
 from config.db import get_db
+from config.service import publish_event
 from config.redis import get_redis
 from apps.metrics.models import Event
 from sqlalchemy import func
@@ -26,6 +27,9 @@ async def track_impression(
     db.add(event)
     db.commit()
     db.refresh(event)
+    
+    await publish_event(campaign_id, "impression")
+
     return {"status": "ok", "event_id": event.id}
 
 
@@ -35,6 +39,8 @@ async def track_click(campaign_id: int, db: Session = Depends(get_db)):
     db.add(event)
     db.commit()
     db.refresh(event)
+    await publish_event(campaign_id, "click")
+
     return {"status": "ok", "event_id": event.id}
 
 
