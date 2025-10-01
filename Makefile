@@ -108,14 +108,13 @@ test:
 
 
 # TEST DOCKER MODELOS
-docker-test-models-poetry:
-	docker exec -it adtech-lite-api poetry run python -c "from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print(Campaign, Event)"
+docker-test-models:
+	docker exec adtech-lite-api python -c "from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print(Campaign, Event)"
 
 
-docker-test-models-shell:
-	docker exec -it adtech-lite-api \
-	python -c "import os; from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print('DB=', os.getenv('DATABASE_URL')); print(Campaign, Event)" && \
-	set -a && . ./.env.local && docker exec -it adtech-lite-mysql mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD adtech_lite_db -e "SHOW TABLES;"
+docker-test-db:
+	docker exec adtech-lite-api python -c "import os; from apps.campaigns.models import Campaign; from apps.metrics.models import Event; print('DB=', os.getenv('DATABASE_URL')); print(Campaign, Event)"
+	set -a && . ./.env.local && docker exec adtech-lite-mysql mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD adtech_lite_db -e "SHOW TABLES;"
 
 
 
