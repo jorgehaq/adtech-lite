@@ -1,25 +1,32 @@
-import pytest
+"""
+Health endpoint test.
+
+Tests the /health endpoint with mocked database and Redis.
+Redis is mocked globally in conftest.py.
+"""
+from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 from main import app
+from config.db import get_db
 
-client = TestClient(app)
 
-def test_healthcheck_ok(monkeypatch):
-    # Mock DB
-    def fake_execute(query):
-        return True
+def test_healthcheck_ok():
+    """Test health endpoint returns ok with mocked services."""
+    # Mock DB session
+    mock_session = MagicMock()
+    mock_session.execute.return_value = True
 
-    # Mock Redis
-    class FakeRedis:
-        def ping(self):
-            return True
+    def fake_get_db():
+        yield mock_session
 
-    # Monkeypatch DB + Redis
-    app.dependency_overrides = {}
-    monkeypatch.setattr("config.db.get_db", lambda: type("FakeSession", (), {"execute": fake_execute})())
-    monkeypatch.setattr("config.redis.redis_client", FakeRedis())
+    app.dependency_overrides[get_db] = fake_get_db
 
+    client = TestClient(app)
     response = client.get("/health")
+
+    # Cleanup
+    app.dependency_overrides.clear()
+
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
