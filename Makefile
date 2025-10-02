@@ -1,6 +1,6 @@
 PROJECT_NAME=adtech-lite
 REGION=us-central1
-GCP_PROJECT_ID?=your-gcp-project-id
+GCP_PROJECT_ID?=adtech-lite
 IMAGE=gcr.io/$(GCP_PROJECT_ID)/$(PROJECT_NAME):latest
 IMAGE_LOCAL=$(PROJECT_NAME):latest
 
@@ -138,3 +138,11 @@ gcp-deploy: docker-build docker-push
 		--add-cloudsql-instances $(GCP_PROJECT_ID):$(REGION):$(PROJECT_NAME)-db \
 		--set-env-vars DATABASE_URL=$$DATABASE_URL \
 		--set-env-vars REDIS_URL=$$REDIS_URL
+
+
+# -------------------------------------------------------------------
+#  GITHUB ACTIONS
+# -------------------------------------------------------------------
+docker-push:
+	docker tag $(IMAGE_LOCAL) $(IMAGE)
+	docker push $(IMAGE)
